@@ -1,0 +1,12 @@
+syntax = "proto3";
+package mymodule.mymodule;
+
+import "gogoproto/gogo.proto";
+import "mymodule/mymodule/params.proto";
+
+option go_package = "mymodule/x/mymodule/types";
+
+// GenesisState defines the mymodule module's genesis state.
+message GenesisState {
+  Params params = 1 [(gogoproto.nullable) = false];
+}
