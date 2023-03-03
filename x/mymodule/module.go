@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	// this line is used by starport scaffolding # 1
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -11,15 +13,18 @@ import (
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
+	"mymodule/x/mymodule/client/cli"
+	"mymodule/x/mymodule/keeper"
+	"mymodule/x/mymodule/types"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cdctypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
-	"mymodule/x/mymodule/client/cli"
-	"mymodule/x/mymodule/keeper"
-	"mymodule/x/mymodule/types"
 )
+
+const ModuleName = "mymodule"
 
 var (
 	_ module.AppModule      = AppModule{}
@@ -29,10 +34,46 @@ var (
 // ----------------------------------------------------------------------------
 // AppModuleBasic
 // ----------------------------------------------------------------------------
+// Module struct contains the necessary methods for the module
+type Module struct {
+	// ...
+}
 
 // AppModuleBasic implements the AppModuleBasic interface that defines the independent methods a Cosmos SDK module needs to implement.
 type AppModuleBasic struct {
 	cdc codec.BinaryCodec
+}
+
+// NewModule creates a new instance of the module
+func NewModule() Module {
+	return Module{}
+}
+
+// Route returns the module's routing key
+func (m Module) Route() string {
+	return ModuleName
+}
+
+// NewHandler returns an http.Handler for the module
+func (m Module) NewHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// handle requests
+	})
+}
+
+// RegisterRoutes registers the module's routes
+func (m Module) RegisterRoutes(ctx sdk.Context, rtr sdk.Router) {
+	rtr.HandleFunc(fmt.Sprintf("/%s/%s", ModuleName, "endpoint"), m.Handler)
+}
+
+// Genesis returns the module's genesis state
+func (m Module) Genesis() json.RawMessage {
+	return nil
+}
+
+// ValidateGenesis validates the module's genesis state
+func (m Module) ValidateGenesis(_ sdk.JSONMarshaler, _ sdk.JSONMarshaler, _ json.RawMessage) error {
+	return nil
 }
 
 func NewAppModuleBasic(cdc codec.BinaryCodec) AppModuleBasic {

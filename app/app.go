@@ -6,6 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	"github.com/myusername/myapp/x/mymodule"
+
+	db "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	nodeservice "github.com/cosmos/cosmos-sdk/client/grpc/node"
@@ -103,9 +109,11 @@ import (
 	tmos "github.com/tendermint/tendermint/libs/os"
 	dbm "github.com/tendermint/tm-db"
 
+	"mymodule/x/mymodule"
 	mymodulemodule "mymodule/x/mymodule"
 	mymodulemodulekeeper "mymodule/x/mymodule/keeper"
 	mymodulemoduletypes "mymodule/x/mymodule/types"
+
 	// this line is used by starport scaffolding # stargate/app/moduleImport
 
 	appparams "mymodule/app/params"
@@ -897,4 +905,41 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 // SimulationManager implements the SimulationApp interface
 func (app *App) SimulationManager() *module.SimulationManager {
 	return app.sm
+}
+
+func NewMyApp() *MyApp {
+	db := db.NewMemDB()
+	cdc := MakeCodec()
+
+	authSubspace := sdk.NewSubspace(auth.DefaultParamspace)
+	bankSubspace := sdk.NewSubspace(bank.DefaultParamspace)
+	stakingSubspace := sdk.NewSubspace(staking.DefaultParamspace)
+	myModule := mymodule.NewModule()
+
+	app := &MyApp{
+		BaseApp: baseapp.NewBaseApp("MyApp", cdc, db),
+	}
+
+	app.Router().
+		AddRoute(auth.RouterKey, auth.NewHandler(authSubspace)).
+		AddRoute(bank.RouterKey, bank.NewHandler(bankSubspace)).
+		AddRoute(staking.RouterKey, staking.NewHandler(stakingSubspace)).
+		AddRoute(myModule.Route(), myModule.NewHandler())
+
+	app.SetInitChainer(NewInitChainer(app))
+
+	app.SetAnteHandler(auth.NewAnteHandler(app.AccountKeeper, app.BankKeeper))
+
+	app.MountStores(
+		auth.StoreKey, app.KeyAccount,
+		bank.StoreKey, app.KeyBank,
+		staking.StoreKey, app.KeyStaking,
+	)
+
+	err := app.LoadLatestVersion(app.KeyMain)
+	if err != nil {
+		panic(err)
+	}
+
+	return app
 }
